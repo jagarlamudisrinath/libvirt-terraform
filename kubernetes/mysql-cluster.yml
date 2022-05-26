@@ -1,0 +1,12 @@
+apiVersion: mysql.oracle.com/v2
+kind: InnoDBCluster
+metadata:
+  name: hrscluster
+  namespace: hrs
+spec:
+  secretName: mysecret
+  tlsUseSelfSigned: true
+  instances: 3
+  router:
+    instances: 1
+

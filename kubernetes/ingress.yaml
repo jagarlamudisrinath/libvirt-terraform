@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hrs-ingress
+  namespace: hrs
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: hrs-nginx
+  defaultBackend:
+    service:
+      name: hrs-frontend-service
+      port:
+        number: 80
+  rules:
+    - host: hrs.example.local
+      http:
+        paths:
+          - path: /api(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: hrs-backend-service
+                port:
+                  number: 80
+          - path:  /()(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: hrs-frontend-service
+                port:
+                  number: 80
+
+#helm install hrs-ingress ingress-nginx/ingress-nginx -n hrs --values ../ingress/ingress-nginx.yaml

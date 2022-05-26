@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hrs-deployment
+  namespace: hrs
+  labels:
+    app: hrs
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hrs
+  template:
+    metadata:
+      labels:
+        app: hrs
+    spec:
+      containers:
+        - name: hrs-backend
+          image: sr19thjm/hrs:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: MYSQL_URL
+              value: "hrscluster"
+            - name: MYSQL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: rootUser
+                  name: mysecret
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: rootPassword
+                  name: mysecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hrs-backend-service
+  namespace: hrs
+spec:
+  selector:
+    app: hrs
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000

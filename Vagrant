@@ -1,0 +1,198 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+
+current_dir = File.dirname(__FILE__)
+Vagrant.configure("2") do |global_config|
+
+cookbook_testers = {
+:awx => {
+    :hostname => "awx.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.201",
+    :memory => 8192,
+    :cpus => 4,
+    :hostport => 2101,
+  },
+:jenkins => {
+    :hostname => "jenkins.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.202",
+    :memory => 4192,
+    :cpus => 2,
+    :hostport => 2102,
+  },
+:gitlab => {
+    :hostname => "gitlab.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.203",
+    :memory => 4192,
+    :cpus => 2,
+    :hostport => 2103,
+  },
+:artifactory => {
+    :hostname => "artifactory.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.204",
+    :memory => 4192,
+    :cpus => 2,
+    :hostport => 2104,
+  },
+:vault => {
+    :hostname => "vault.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.205",
+    :memory => 4192,
+    :cpus => 2,
+    :hostport => 2105,
+  },
+:k8master => {
+    :hostname => "k8master.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.206",
+    :memory => 5120,
+    :cpus => 2,
+    :hostport => 2106,
+  },
+:k8worker1 => {
+    :hostname => "k8worker1.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.207",
+    :memory => 12240,
+    :cpus => 2,
+    :hostport => 2107,
+  },
+:k8worker2 => {
+    :hostname => "k8worker2.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.208",
+    :memory => 12240,
+    :cpus => 2,
+    :hostport => 2108,
+  },
+:wladmin => {
+    :hostname => "wladmin.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.209",
+    :memory => 3072,
+    :cpus => 2,
+    :hostport => 2109,
+  },
+:wlmanaged1 => {
+    :hostname => "wlmanaged1.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.210",
+    :memory => 6144,
+    :cpus => 2,
+    :hostport => 2110,
+  },
+:wlmanaged2 => {
+    :hostname => "wlmanaged2.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.211",
+    :memory => 6144,
+    :cpus => 2,
+    :hostport => 2111,
+  },
+:apache => {
+    :hostname => "apache.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.212",
+    :memory => 4192,
+    :cpus => 2,
+    :hostport => 2112,
+  },
+:tomcat => {
+    :hostname => "tomcat.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.213",
+    :memory => 4192,
+    :cpus => 2,
+    :hostport => 2113,
+  },
+:apps => {
+    :hostname => "apps.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.214",
+    :memory => 6144,
+    :cpus => 2,
+    :hostport => 2114,
+  },
+:prometheus => {
+    :hostname => "prometheus.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.215",
+    :memory => 4192,
+    :cpus => 2,
+    :hostport => 2115,
+  },
+:elsearch => {
+    :hostname => "elsearch.example.com",
+    :box_name => "centos/stream8",
+    :ipaddress => "192.168.1.216",
+    :memory => 4192,
+    :cpus => 2,
+    :hostport => 2116,
+  }
+}
+
+  cookbook_testers.each_pair do |name, options|
+    global_config.vm.define name do |config|
+      config.vm.box = options[:box_name]
+      config.vm.host_name = options[:hostname]
+      config.disksize.size = '50GB'
+      config.vm.network "public_network", ip: options[:ipaddress]
+      #config.vm.network "public_network", bridge: "enp0s25"
+      config.vm.network "forwarded_port", guest: 22, host: options[:hostport]
+      config.ssh.forward_agent = true
+      public_key = File.read("#{Dir.home}/.ssh/id_rsa.pub")
+      config.vm.provision "pub_key", type:"shell", :inline =>"
+        echo 'Copying ansible-vm public SSH Keys to the VM'
+        mkdir -p /home/vagrant/.ssh
+        chmod 700 /home/vagrant/.ssh
+        echo '#{public_key}' >> /home/vagrant/.ssh/authorized_keys
+        chmod -R 600 /home/vagrant/.ssh/authorized_keys
+        echo 'Host 192.168.1.*' >> /home/vagrant/.ssh/config
+        echo 'StrictHostKeyChecking no' >> /home/vagrant/.ssh/config
+        echo 'UserKnownHostsFile /dev/null' >> /home/vagrant/.ssh/config
+        chmod -R 600 /home/vagrant/.ssh/config
+        ", privileged: false
+        
+      config.vm.provision "hosts", type:"shell", :inline =>"
+        echo 'Modifying Hosts file'
+        sed -i '/#{options[:hostname]}/d' /etc/hosts
+        echo '192.168.1.201  awx awx.example.com' >> /etc/hosts
+        echo '192.168.1.201  awx awx.example.com' >> /etc/hosts
+        echo '192.168.1.202  jenkins jenkins.example.com' >> /etc/hosts
+        echo '192.168.1.203  gitlab gitlab.example.com' >> /etc/hosts
+        echo '192.168.1.204  artifactory artifactory.example.com' >> /etc/hosts
+        echo '192.168.1.205  vault vault.example.com' >> /etc/hosts
+        echo '192.168.1.206  k8master k8master.example.com' >> /etc/hosts
+        echo '192.168.1.207  k8worker1 k8worker1.example.com' >> /etc/hosts
+        echo '192.168.1.208  k8worker2 k8worker2.example.com' >> /etc/hosts
+        echo '192.168.1.209  wladmin wladmin.example.com' >> /etc/hosts
+        echo '192.168.1.210  wlmanaged1 wlmanaged1.example.com' >> /etc/hosts
+        echo '192.168.1.211  wlmanaged2 wlmanaged2.example.com' >> /etc/hosts
+        echo '192.168.1.212  apache apache.example.com' >> /etc/hosts
+        echo '192.168.1.213  tomcat tomcat.example.com' >> /etc/hosts
+        echo '192.168.1.214  aps apps.example.com' >> /etc/hosts
+        echo '192.168.1.215  prometheus prometheus.example.com' >> /etc/hosts
+        echo '192.168.1.216  elsearch elsearch.example.com' >> /etc/hosts
+        echo '192.168.1.220  hnn hnn.example.com' >> /etc/hosts
+        echo '192.168.1.221  hdn1 hdn1.example.com' >> /etc/hosts
+        echo '192.168.1.222  hdn2 hdn2.example.com' >> /etc/hosts
+        echo '192.168.1.223  knd1 knd1.example.com' >> /etc/hosts
+        echo '192.168.1.224  knd2 knd2.example.com' >> /etc/hosts
+        echo '192.168.1.225  knd3 knd3.example.com' >> /etc/hosts
+        echo '192.168.1.226  mysql mysql.example.com' >> /etc/hosts
+        echo '192.168.1.227  mangodb mangodb.example.com' >> /etc/hosts
+        echo '192.168.1.228  ambari ambari.example.com' >> /etc/hosts
+        ", privileged: true
+      config.vm.provider :virtualbox do |vb|
+	 vb.customize ['modifyvm', :id, '--memory', options[:memory], '--cpus', options[:cpus]]
+	 vb.name = options[:hostname]
+      end
+    end
+  end
+end
+
